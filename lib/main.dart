@@ -4,9 +4,11 @@ import 'package:childmoniteringsystem/View/splash_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+
 import 'View/Loginas.dart';
 
 import 'View/Teachers/Teachersdashboard.dart';
+import 'View/TestReports/forgetpassword.dart';
 import 'View/admindashboard.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';

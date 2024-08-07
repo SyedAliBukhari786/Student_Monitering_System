@@ -1,5 +1,6 @@
 
 import 'package:childmoniteringsystem/View/Parents/ParentsDashboard.dart';
+import 'package:childmoniteringsystem/View/TestReports/forgetpassword.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
@@ -166,6 +167,16 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                         ),
+                        SizedBox( height: 10,),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            GestureDetector(onTap: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (context) => Forgetpassword()));
+
+                            },child: Text("Forgot Password"))
+                          ],),
+
                         SizedBox( height: 30,),
                         Center(
                           child: Container(
@@ -307,6 +318,16 @@ class _LoginPageState extends State<LoginPage> {
                                     ),
                                   ),
                                 ),
+                                SizedBox( height: 10,),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                  GestureDetector(onTap: () {
+Navigator.push(context, MaterialPageRoute(builder: (context) => Forgetpassword()));
+
+                                  },child: Text("Forgot Password"))
+                                ],),
+
                                 SizedBox( height: 30,),
                                 Container(
                                   width: 400,
@@ -466,12 +487,15 @@ class _LoginPageState extends State<LoginPage> {
           .where('adminid', isEqualTo: userId)
           .get();
 
+      print('Query Snapshot: ${querySnapshot.docs.length}');
       return querySnapshot.docs.isNotEmpty;
     } catch (e) {
+      print('Error: $e');
       _showErrorSnackbar('Failed to check admin status: ${e.toString()}');
       return false;
     }
   }
+
 
   bool _validateInputs() {
     if (_emailController.text.trim().isEmpty || !_emailController.text.contains('@')) {

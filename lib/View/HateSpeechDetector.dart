@@ -1,4 +1,5 @@
 import 'package:avatar_glow/avatar_glow.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:highlight_text/highlight_text.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -53,16 +54,33 @@ class _SpeechScreenState extends State<SpeechScreen> {
   bool _isListening = false;
   String _text = 'Press the button and start speaking';
   double _confidence = 1.0;
+  String _hateSpeechUrl = '';
 
   @override
   void initState() {
     super.initState();
     _speech = stt.SpeechToText();
+    _fetchHateSpeechUrl();
+  }
+
+  Future<void> _fetchHateSpeechUrl() async {
+    try {
+      DocumentSnapshot snapshot = await FirebaseFirestore.instance.collection('FlaskApi').doc('hxVTYMnTBWw2RFE3D1es').get();
+      setState(() {
+        _hateSpeechUrl = snapshot['hatespeech'];
+      });
+      print('Hate Speech URL: $_hateSpeechUrl');
+    } catch (e) {
+      print('Error fetching URL: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text('Confidence: ${(_confidence * 100.0).toStringAsFixed(1)}%'),
+      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: AvatarGlow(
         animate: _isListening,
@@ -148,7 +166,12 @@ class _SpeechScreenState extends State<SpeechScreen> {
   }
 
   Future<void> _getPrediction(String speech) async {
-    final url = 'https://c1b1-118-107-131-191.ngrok-free.app/predict';
+    if (_hateSpeechUrl.isEmpty) {
+      print('Hate speech URL is not available.');
+      return;
+    }
+
+    final url = '$_hateSpeechUrl/predict';
     final response = await http.post(
       Uri.parse(url),
       headers: <String, String>{

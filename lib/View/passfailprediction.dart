@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-class PassFailPrediction extends StatelessWidget {
+class PassFailPrediction extends StatefulWidget {
   final String studentId;
   final String classId;
 
@@ -13,6 +13,31 @@ class PassFailPrediction extends StatelessWidget {
     required this.classId,
   }) : super(key: key);
 
+  @override
+  _PassFailPredictionState createState() => _PassFailPredictionState();
+}
+
+class _PassFailPredictionState extends State<PassFailPrediction> {
+  String _passfailurl = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPassFailUrl();
+  }
+
+  Future<void> _fetchPassFailUrl() async {
+    try {
+      DocumentSnapshot snapshot = await FirebaseFirestore.instance.collection('FlaskApi').doc('hieKW6Sb392d7XXndc1k').get();
+      setState(() {
+        _passfailurl = snapshot['passfailprediction'];
+      });
+      print('Pass Fail URL: $_passfailurl');
+    } catch (e) {
+      print('Error fetching URL: $e');
+    }
+  }
+
   Future<double> _calculateAttendancePercentage() async {
     final FirebaseFirestore _firestore = FirebaseFirestore.instance;
     int totalClasses = 0;
@@ -21,7 +46,7 @@ class PassFailPrediction extends StatelessWidget {
     try {
       QuerySnapshot attendanceSnapshot = await _firestore
           .collection('Attendance')
-          .where('Class_ID', isEqualTo: classId)
+          .where('Class_ID', isEqualTo: widget.classId)
           .get();
 
       for (var doc in attendanceSnapshot.docs) {
@@ -29,7 +54,7 @@ class PassFailPrediction extends StatelessWidget {
             .collection('Attendance')
             .doc(doc.id)
             .collection('Report')
-            .doc(studentId)
+            .doc(widget.studentId)
             .get();
 
         if (reportSnapshot.exists) {
@@ -57,7 +82,7 @@ class PassFailPrediction extends StatelessWidget {
     try {
       QuerySnapshot testReportsSnapshot = await _firestore
           .collection('TestReports')
-          .where('Class_ID', isEqualTo: classId)
+          .where('Class_ID', isEqualTo: widget.classId)
           .get();
 
       for (var doc in testReportsSnapshot.docs) {
@@ -69,7 +94,7 @@ class PassFailPrediction extends StatelessWidget {
             .collection('TestReports')
             .doc(doc.id)
             .collection('Reports')
-            .doc(studentId)
+            .doc(widget.studentId)
             .get();
 
         if (reportSnapshot.exists) {
@@ -88,7 +113,7 @@ class PassFailPrediction extends StatelessWidget {
 
   Future<bool> _getPrediction(double attendancePercentage, double reportPercentage) async {
     final response = await http.post(
-      Uri.parse('https://5072-118-107-131-191.ngrok-free.app/predict'), // Update with your Flask server address
+      Uri.parse('$_passfailurl/predict'), // Update with your Flask server address
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'attendance_percentage': attendancePercentage,
@@ -224,4 +249,5 @@ class PassFailPrediction extends StatelessWidget {
         ),
       ),
     );
-  }}
+  }
+}

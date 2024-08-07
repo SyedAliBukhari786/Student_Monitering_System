@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
 import 'Login.dart';
+import 'Superadminpannerl.dart';
 import 'Teacherslogin.dart';
 
 class Selectin extends StatefulWidget {
@@ -148,6 +149,49 @@ class _SelectinState extends State<Selectin> {
                         flex: 8,
                         child: Container(
                             child: Lottie.asset("assets/teachers.json")
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 50,),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Superadminpannerl()));
+
+                },
+                child: Container(
+                  height: 150,
+                  width: 100,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Container(
+                          child: Center(
+                            child: Text(
+                              "Super/Admin",
+                              style: TextStyle(
+                                  color: Colors.blue,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 8,
+                        child: Container(
+                            child: Lottie.asset("assets/admin.json")
                         ),
                       ),
                     ],

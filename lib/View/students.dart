@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 
 import 'StudentDetails.dart';
 
@@ -12,7 +15,6 @@ class Students extends StatefulWidget {
 }
 
 class _StudentsState extends State<Students> {
-
   final TextEditingController studentname = TextEditingController();
   final TextEditingController parentscontact = TextEditingController();
   final TextEditingController parentsname = TextEditingController();
@@ -21,8 +23,12 @@ class _StudentsState extends State<Students> {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final ImagePicker _picker = ImagePicker();
+
   List<String> classNames = [];
   List<String> list_type = ["Select Class"];
+  File? _imageFile;
 
   Future<bool> parentExists(String email) async {
     try {
@@ -62,7 +68,7 @@ class _StudentsState extends State<Students> {
 
   Future<void> fetchClassNames() async {
     try {
-      QuerySnapshot querySnapshot = await _firestore.collection("Classes").orderBy("className",descending: false).get();
+      QuerySnapshot querySnapshot = await _firestore.collection("Classes").orderBy("className", descending: false).get();
       classNames = querySnapshot.docs.map((doc) => doc['className'] as String).toList();
       setState(() {
         list_type.addAll(classNames);
@@ -70,6 +76,28 @@ class _StudentsState extends State<Students> {
       });
     } catch (e) {
       print("Error fetching class names: $e");
+    }
+  }
+
+  Future<void> pickImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
+    }
+  }
+
+  Future<String?> uploadImage(File image) async {
+    try {
+      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
+      Reference ref = _storage.ref().child('students/$fileName');
+      UploadTask uploadTask = ref.putFile(image);
+      TaskSnapshot taskSnapshot = await uploadTask;
+      return await taskSnapshot.ref.getDownloadURL();
+    } catch (e) {
+      print("Error uploading image: $e");
+      return null;
     }
   }
 
@@ -97,184 +125,224 @@ class _StudentsState extends State<Students> {
           );
         },
       ),
-
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           showDialog(
             context: context,
             builder: (BuildContext context) {
-              return AlertDialog(
-                title: Center(child: Text('Student Registration')),
-                content: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextField(
-                        controller: studentname,
-                        decoration: InputDecoration(
-                          labelText: 'Student Name',
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.green),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.green),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 2,),
-                      TextField(
-                        controller: parentsname,
-                        decoration: InputDecoration(
-                          labelText: 'Parents Name',
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.green),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.green),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 2,),
-                      TextField(
-                        controller: parentscontact,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: 'Parents Contact',
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.green),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.green),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 2,),
-                      TextField(
-                        controller: rollno,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: 'Roll No',
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.green),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.green),
-                          ),
-                        ),
-                      ),
-                      TextField(
-                        controller: classname,
-                        enabled: false,
-                        decoration: InputDecoration(
-                          labelText: 'Class',
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.green),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.green),
-                          ),
-                        ),
-                      ),
-                      Center(
-                        child: DropdownButton<String>(
-                          value: dropdownValue_type,
-                          icon: const Icon(Icons.arrow_drop_down_outlined),
-                          elevation: 16,
-                          style: const TextStyle(color: Colors.black),
-                          underline: Container(
-                            height: 2,
-                            color: Colors.black,
-                          ),
-                          onChanged: (String? value) {
-                            setState(() {
-                              dropdownValue_type = value!;
-                              classname.text = dropdownValue_type;
-                            });
-                          },
-                          items: list_type.map<DropdownMenuItem<String>>(
-                                (String value) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(value),
-                              );
+              return StatefulBuilder(
+                builder: (context, setState) {
+                  return AlertDialog(
+                    title: Center(child: Text('Student Registration')),
+                    content: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          GestureDetector(
+                            onTap: () async {
+                              final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+                              if (pickedFile != null) {
+                                setState(() {
+                                  _imageFile = File(pickedFile.path);
+                                });
+                              }
                             },
-                          ).toList(),
-                        ),
-                      ),
-                      SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () async {
-                          if (validateFields()) {
-                            try {
-                              CollectionReference classesCollection = _firestore.collection('Classes');
-                              DateTime now = DateTime.now();
-                              Timestamp timestamp = Timestamp.fromDate(now);
-
-                              QuerySnapshot classQuery = await classesCollection.where('className', isEqualTo: classname.text.trim()).get();
-
-                              if (classQuery.docs.isNotEmpty) {
-                                String classDocumentId = classQuery.docs.first.id;
-                                String parentEmail = "${parentscontact.text}@gmail.com";
-                                String parentPassword = "12345678";
-
-                                bool exists = await parentExists(parentEmail);
-
-                                if (exists) {
-                                  await _firestore.collection('Students').add({
-                                    'StudentName': studentname.text,
-                                    'ParentContact': parentscontact.text,
-                                    'ParentName': parentsname.text,
-                                    'Class': classname.text,
-                                    "Class_ID": classDocumentId,
-                                    'Rollno': rollno.text.trim(),
-                                    "Date": timestamp,
-                                  });
-                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                    content: Text("Parent already exists for another student."),
-                                  ));
-                                } else {
-                                  await registerParent(parentEmail, parentPassword, parentsname.text, parentscontact.text);
-
-                                  await _firestore.collection('Students').add({
-                                    'StudentName': studentname.text,
-                                    'ParentContact': parentscontact.text,
-                                    'ParentName': parentsname.text,
-                                    'Class': classname.text,
-                                    "Class_ID": classDocumentId,
-                                    'Rollno': rollno.text.trim(),
-                                    "Date": timestamp,
-                                  });
-
-                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                    content: Text("Student details saved successfully."),
-                                  ));
+                            child: Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                border: Border.all(color: Colors.green),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: _imageFile == null
+                                  ? Center(child: Text('No image selected'))
+                                  : Image.file(_imageFile!, fit: BoxFit.cover),
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          TextField(
+                            controller: studentname,
+                            decoration: InputDecoration(
+                              labelText: 'Student Name',
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.green),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.green),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          TextField(
+                            controller: parentsname,
+                            decoration: InputDecoration(
+                              labelText: 'Parents Name',
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.green),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.green),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          TextField(
+                            controller: parentscontact,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Parents Contact',
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.green),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.green),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          TextField(
+                            controller: rollno,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Roll No',
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.green),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.green),
+                              ),
+                            ),
+                          ),
+                          TextField(
+                            controller: classname,
+                            enabled: false,
+                            decoration: InputDecoration(
+                              labelText: 'Class',
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.green),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.green),
+                              ),
+                            ),
+                          ),
+                          Center(
+                            child: DropdownButton<String>(
+                              value: dropdownValue_type,
+                              icon: const Icon(Icons.arrow_drop_down_outlined),
+                              elevation: 16,
+                              style: const TextStyle(color: Colors.black),
+                              underline: Container(
+                                height: 2,
+                                color: Colors.black,
+                              ),
+                              onChanged: (String? value) {
+                                setState(() {
+                                  dropdownValue_type = value!;
+                                  classname.text = dropdownValue_type;
+                                });
+                              },
+                              items: list_type.map<DropdownMenuItem<String>>(
+                                    (String value) {
+                                  return DropdownMenuItem<String>(
+                                    value: value,
+                                    child: Text(value),
+                                  );
+                                },
+                              ).toList(),
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () async {
+                              if (validateFields()) {
+                                if (_imageFile == null) {
+                                  showSnackbar("Please select an image.", Colors.red);
+                                  return;
                                 }
 
-                                Navigator.of(context).pop();
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                  content: Text("Registration Successful."),
-                                  backgroundColor: Colors.green,
-                                ));
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                  content: Text("Class not found."),
-                                  backgroundColor: Colors.red,
-                                ));
+                                try {
+                                  CollectionReference classesCollection = _firestore.collection('Classes');
+                                  DateTime now = DateTime.now();
+                                  Timestamp timestamp = Timestamp.fromDate(now);
+
+                                  QuerySnapshot classQuery = await classesCollection.where('className', isEqualTo: classname.text.trim()).get();
+
+                                  if (classQuery.docs.isNotEmpty) {
+                                    String classDocumentId = classQuery.docs.first.id;
+                                    String parentEmail = "${parentscontact.text}@gmail.com";
+                                    String parentPassword = "12345678";
+
+                                    bool exists = await parentExists(parentEmail);
+
+                                    String? imageUrl = await uploadImage(_imageFile!);
+
+                                    if (imageUrl == null) {
+                                      showSnackbar("Failed to upload image.", Colors.red);
+                                      return;
+                                    }
+
+                                    if (exists) {
+                                      await _firestore.collection('Students').add({
+                                        'StudentName': studentname.text,
+                                        'ParentContact': parentscontact.text,
+                                        'ParentName': parentsname.text,
+                                        'Class': classname.text,
+                                        "Class_ID": classDocumentId,
+                                        'Rollno': rollno.text.trim(),
+                                        "Date": timestamp,
+                                        "imageUrl": imageUrl,
+                                      });
+
+                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                        content: Text("Student details saved successfully."),
+                                      ));
+                                    } else {
+                                      await registerParent(parentEmail, parentPassword, parentsname.text, parentscontact.text);
+                                      await _firestore.collection('Students').add({
+                                        'StudentName': studentname.text,
+                                        'ParentContact': parentscontact.text,
+                                        'ParentName': parentsname.text,
+                                        'Class': classname.text,
+                                        "Class_ID": classDocumentId,
+                                        'Rollno': rollno.text.trim(),
+                                        "Date": timestamp,
+                                        "imageUrl": imageUrl,
+                                      });
+
+                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                        content: Text("Student details saved successfully."),
+                                      ));
+                                    }
+
+                                    Navigator.of(context).pop();
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                      content: Text("Registration Successful."),
+                                      backgroundColor: Colors.green,
+                                    ));
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                      content: Text("Class not found."),
+                                      backgroundColor: Colors.red,
+                                    ));
+                                  }
+                                } catch (e) {
+                                  print("Error: $e");
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                    content: Text("Registration failed.$e"),
+                                    backgroundColor: Colors.red,
+                                  ));
+                                }
                               }
-                            } catch (e) {
-                              print("Error: $e");
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                content: Text("Registration failed.$e"),
-                                backgroundColor: Colors.red,
-                              ));
-                            }
-                          }
-                        },
-                        child: Text('Register'),
+                            },
+                            child: Text('Register'),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               );
             },
           );
